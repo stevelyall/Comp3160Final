@@ -1,7 +1,12 @@
 package ca.stevenlyall.comp3160final;
 
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
@@ -23,12 +28,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback{
+public class MainActivity extends FragmentActivity implements OnMapReadyCallback, SensorEventListener {
 
 	public static int TTS_DATA_CHECK = 1;
 	private final String TAG = "MAIN";
 	LatLng startLatLng;
 	ArrayList<City> cities;
+	SensorManager sensorManager;
+	Sensor sensor;
 	private GoogleMap map;
 	private TextToSpeech textToSpeech;
 
@@ -38,8 +45,25 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 		setContentView(R.layout.activity_main);
 
 		initTTS();
+		setUpCities();
+		getSensors();
 
+		SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+		mapFragment.getMapAsync(this);
+	}
 
+	@Override
+	protected void onPause() {
+		super.onPause();
+		sensorManager.unregisterListener(this);
+	}
+
+	private void initTTS() {
+		Intent intent = new Intent(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+		startActivityForResult(intent, TTS_DATA_CHECK);
+	}
+
+	private void setUpCities() {
 		startLatLng = new LatLng(49.961381, -118.641357);
 
 		City victoria = new City(new LatLng(48.428421, -123.365644), "Victoria");
@@ -49,14 +73,28 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 		cities.add(victoria);
 		cities.add(calgary);
 		cities.add(kamloops);
-
-		SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-		mapFragment.getMapAsync(this);
 	}
 
-	private void initTTS() {
-		Intent intent = new Intent(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
-		startActivityForResult(intent, TTS_DATA_CHECK);
+	private void getSensors() {
+		sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+//
+// List<Sensor> sensors = sensorManager.getSensorList(Sensor.TYPE_LIGHT);
+//		Log.i(TAG, "getSensors: " + sensors.size());
+//		for (Sensor s : sensors) {
+//			Log.i(TAG, s.toString());
+//		}
+
+		sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+		if (sensor == null) {
+			// no light sensor, use proximity sensor
+			sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+		}
+		Log.i(TAG, "getSensors: SENSOR " + sensor.toString());
+
+		// TODO no sensor events for any sensors?
+		sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT), SensorManager.SENSOR_DELAY_NORMAL);
+
+		Log.i(TAG, "getSensors: registered? " + sensor.toString() + " ");
 	}
 
 	@Override
@@ -71,7 +109,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 						if (textToSpeech.isLanguageAvailable(Locale.US) >= 0) {
 							textToSpeech.setLanguage(Locale.US);
 							textToSpeech.setPitch(0.8f);
-							textToSpeech.setSpeechRate(1.1f);
+							textToSpeech.setSpeechRate(1.5f);
 							playTTSWelcomeMsg();
 						}
 					}
@@ -117,8 +155,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 		map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 		CameraPosition position = CameraPosition.builder()
 				.target(startLatLng)
-				.zoom(5)
-				.bearing(90)
+				.zoom(5).bearing(0) // face north
 				.tilt(45)
 				.build();
 		map.animateCamera(CameraUpdateFactory.newCameraPosition(position));
@@ -127,6 +164,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 			Marker m = map.addMarker(new MarkerOptions().position(c.getLatLng()).icon(BitmapDescriptorFactory.fromResource(R.drawable.frame03)).title(c.getName()).draggable(true));
 			c.setCityMarker(m);
 		}
+
 		map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
 			@Override
 			public boolean onMarkerClick(Marker marker) {
@@ -155,4 +193,30 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 			}
 		});
 	}
+
+	// TODO change map type with sesnor - sensor events not working?
+	private void changeMapType() {
+		map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+	}
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		Log.i(TAG, "onSensorChanged: event");
+		if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
+			float value = event.values[0];
+			Log.i(TAG, "onSensorChanged: SENSOR" + event.sensor.getName());
+			Log.i(TAG, "onSensorChanged: SENSOR x " + value);
+		} else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
+			float value = event.values[0];
+			Log.i(TAG, "onSensorChanged: SENSOR" + event.sensor.getName());
+			Log.i(TAG, "onSensorChanged: SENSOR x " + value);
+		}
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		Log.i(TAG, "onAccuracyChanged: SESNOR " + sensor.getName() + " accuracy " + accuracy);
+
+	}
+
 }
