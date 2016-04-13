@@ -1,8 +1,7 @@
 package ca.stevenlyall.comp3160final;
 
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Marker;
 
 /**
  * Created by stevenlyall on 16-04-12.
@@ -10,20 +9,19 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 public class City {
 	private LatLng latLng;
-	private MarkerOptions cityMarker;
+	private Marker cityMarker;
 	private String name;
 
 	public City(LatLng latLng, String name) {
-		this.cityMarker = new MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.fromResource(R.drawable.frame03));
 		this.latLng = latLng;
 		this.name = name;
 	}
 
-	public MarkerOptions getCityMarker() {
+	public Marker getCityMarker() {
 		return cityMarker;
 	}
 
-	public void setCityMarker(MarkerOptions cityMarker) {
+	public void setCityMarker(Marker cityMarker) {
 		this.cityMarker = cityMarker;
 	}
 

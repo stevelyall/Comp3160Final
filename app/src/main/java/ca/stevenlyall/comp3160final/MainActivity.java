@@ -3,17 +3,21 @@ package ca.stevenlyall.comp3160final;
 import android.annotation.TargetApi;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
 import android.support.v4.app.FragmentActivity;
-import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,14 +25,12 @@ import java.util.Locale;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback{
 
+	public static int TTS_DATA_CHECK = 1;
 	private final String TAG = "MAIN";
-
-	private GoogleMap map;
 	LatLng startLatLng;
 	ArrayList<City> cities;
-
-
-
+	private GoogleMap map;
+	private TextToSpeech textToSpeech;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -52,15 +54,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 		mapFragment.getMapAsync(this);
 	}
 
-	public static int TTS_DATA_CHECK = 1;
-	private TextToSpeech textToSpeech;
-	private boolean ttsInitialized;
-
 	private void initTTS() {
 		Intent intent = new Intent(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
 		startActivityForResult(intent, TTS_DATA_CHECK);
-
-		// TODO
 	}
 
 	@Override
@@ -91,13 +87,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 	public void playTTSWelcomeMsg() {
 		String message = getString(R.string.welcome_message);
+		speak(message);
+	}
+
+
+	private void speak(String message) {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 			ttsGreater21(message);
 		} else {
 			ttsUnder20(message);
 		}
-
-
 	}
 
 	@SuppressWarnings("deprecation")
@@ -125,8 +124,35 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 		map.animateCamera(CameraUpdateFactory.newCameraPosition(position));
 
 		for (City c: cities) {
-			map.addMarker(c.getCityMarker());
+			Marker m = map.addMarker(new MarkerOptions().position(c.getLatLng()).icon(BitmapDescriptorFactory.fromResource(R.drawable.frame03)).title(c.getName()).draggable(true));
+			c.setCityMarker(m);
 		}
+		map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+			@Override
+			public boolean onMarkerClick(Marker marker) {
+				String title = marker.getTitle();
+				Toast.makeText(getBaseContext(), title, Toast.LENGTH_LONG).show();
+				speak(title);
+				return false;
+			}
+		});
 
+		map.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
+			@Override
+			public void onMarkerDragStart(Marker marker) {
+
+			}
+
+			@Override
+			public void onMarkerDrag(Marker marker) {
+
+			}
+
+			@Override
+			public void onMarkerDragEnd(Marker marker) {
+				marker.setVisible(false);
+
+			}
+		});
 	}
 }
