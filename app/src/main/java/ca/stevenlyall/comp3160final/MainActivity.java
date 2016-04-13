@@ -1,44 +1,41 @@
 package ca.stevenlyall.comp3160final;
 
-import android.location.LocationManager;
+import android.annotation.TargetApi;
+import android.content.Intent;
+import android.os.Build;
+import android.speech.tts.TextToSpeech;
 import android.support.v4.app.FragmentActivity;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.HashMap;
+import java.util.Locale;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback{
 
 	private final String TAG = "MAIN";
 
 	private GoogleMap map;
-
-	LocationManager locationManager;
-	LocationListener locationListener;
-	String bestProvider;
-
 	LatLng startLatLng;
 	ArrayList<City> cities;
+
+
+
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		playWelcomeTTSMsg();
+		initTTS();
 
 
 		startLatLng = new LatLng(49.961381, -118.641357);
@@ -55,10 +52,66 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 		mapFragment.getMapAsync(this);
 	}
 
-	private void playWelcomeTTSMsg() {
+	public static int TTS_DATA_CHECK = 1;
+	private TextToSpeech textToSpeech;
+	private boolean ttsInitialized;
+
+	private void initTTS() {
+		Intent intent = new Intent(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+		startActivityForResult(intent, TTS_DATA_CHECK);
+
 		// TODO
 	}
 
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (requestCode == TTS_DATA_CHECK) {
+			Log.i(TAG, "onActivityResult: TTS_DATA_CHECK" + requestCode);
+			if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+				Log.i(TAG, "onActivityResult: voice data check passed");
+				textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+					@Override
+					public void onInit(int status) {
+						if (textToSpeech.isLanguageAvailable(Locale.US) >= 0) {
+							textToSpeech.setLanguage(Locale.US);
+							textToSpeech.setPitch(0.8f);
+							textToSpeech.setSpeechRate(1.1f);
+							playTTSWelcomeMsg();
+						}
+					}
+				});
+			}
+			else {
+				Log.i(TAG, "onActivityResult: voice data check failed");
+				Intent installVoice = new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+				startActivity(installVoice);
+			}
+		}
+	}
+
+	public void playTTSWelcomeMsg() {
+		String message = getString(R.string.welcome_message);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+			ttsGreater21(message);
+		} else {
+			ttsUnder20(message);
+		}
+
+
+	}
+
+	@SuppressWarnings("deprecation")
+	private void ttsUnder20(String text) {
+		HashMap<String, String> map = new HashMap<>();
+		map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "MessageId");
+		textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, map);
+	}
+
+	@TargetApi(Build.VERSION_CODES.LOLLIPOP)
+	private void ttsGreater21(String text) {
+		String utteranceId=this.hashCode() + "";
+		textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
+	}
 	@Override
 	public void onMapReady(GoogleMap googleMap) {
 		map = googleMap;
