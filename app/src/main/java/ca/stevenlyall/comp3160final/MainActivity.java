@@ -9,6 +9,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.speech.tts.TextToSpeech;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -114,8 +115,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 						}
 					}
 				});
-			}
-			else {
+			} else {
 				Log.i(TAG, "onActivityResult: voice data check failed");
 				Intent installVoice = new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
 				startActivity(installVoice);
@@ -146,22 +146,20 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 	@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 	private void ttsGreater21(String text) {
-		String utteranceId=this.hashCode() + "";
+		String utteranceId = this.hashCode() + "";
 		textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
 	}
+
 	@Override
 	public void onMapReady(GoogleMap googleMap) {
 		map = googleMap;
 		map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-		CameraPosition position = CameraPosition.builder()
-				.target(startLatLng)
-				.zoom(5).bearing(0) // face north
-				.tilt(45)
-				.build();
+		CameraPosition position = CameraPosition.builder().target(startLatLng).zoom(5).bearing(0) // face north
+				.tilt(45).build();
 		map.animateCamera(CameraUpdateFactory.newCameraPosition(position));
 
-		for (City c: cities) {
-			Marker m = map.addMarker(new MarkerOptions().position(c.getLatLng()).icon(BitmapDescriptorFactory.fromResource(R.drawable.frame03)).title(c.getName()).draggable(true));
+		for (City c : cities) {
+			Marker m = map.addMarker(new MarkerOptions().position(c.getLatLng()).icon(BitmapDescriptorFactory.fromResource(R.drawable.frame3)).title(c.getName()).draggable(true));
 			c.setCityMarker(m);
 		}
 
@@ -171,6 +169,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 				String title = marker.getTitle();
 				Toast.makeText(getBaseContext(), title, Toast.LENGTH_LONG).show();
 				speak(title);
+				animateMarker(marker);
 				return false;
 			}
 		});
@@ -192,6 +191,23 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 			}
 		});
+	}
+
+	private void animateMarker(final Marker marker) {
+
+
+		for (int i = 0; i < 15; i++) {
+			Handler handler = new Handler();
+			handler.postDelayed(new Runnable() {
+				public void run() {
+					Log.i(TAG, "animateMarker: animate changing image");
+					// todo get each drawable to animate. Need to get list of resources
+					marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.frame4));
+				}
+			}, 107);
+		}
+
+		marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.frame3));
 	}
 
 	// TODO change map type with sesnor - sensor events not working?
